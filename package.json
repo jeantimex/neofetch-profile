@@ -1,0 +1,9 @@
+{
+  "name": "neofetch-profile",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jimp": "^1.6.0"
+  }
+}

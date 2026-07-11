@@ -1,0 +1,45 @@
+{
+  "sections": [
+    {
+      "title": "{{username}}@github",
+      "fields": [
+        { "key": "Name", "value": "{{name}}" },
+        { "key": "Location", "value": "{{location}}" },
+        { "key": "Created", "value": "{{created}}" },
+        { "key": "Uptime", "value": "{{uptime}}" },
+        { "key": "Company", "value": "{{company}}" }
+      ]
+    },
+    {
+      "fields": [
+        { "key": "Languages", "value": "{{languages}}" },
+        { "key": "IDE", "value": "Cursor, VSCode, Neovim" }
+      ]
+    },
+    {
+      "fields": [
+        { "key": "Hobbies.Software", "value": "WebGL, WebGPU, AI/ML" },
+        { "key": "Hobbies.Hardware", "value": "Mechanical Keyboards" }
+      ]
+    },
+    {
+      "title": "- Contact",
+      "fields": [
+        { "key": "Email", "value": "{{email}}" },
+        { "key": "Website", "value": "https://github.com/jeantimex" },
+        { "key": "Twitter", "value": "{{twitter}}" },
+        { "key": "LeetCode", "value": "https://leetcode.com/u/jeantimex/" }
+      ]
+    }
+  ],
+  "stats": {
+    "title": "- GitHub Stats",
+    "rows": [
+      { "left": { "key": "Repos", "value": "{{repos}}" }, "right": { "key": "Stars", "value": "{{stars}}" } },
+      { "left": { "key": "Following", "value": "{{following}}" }, "right": { "key": "Followers", "value": "{{followers}}" } },
+      { "left": { "key": "Commits", "value": "{{commits}}" }, "right": { "key": "Forks", "value": "{{forks}}" } },
+      { "left": { "key": "Issues", "value": "{{issues}}" }, "right": { "key": "Pull Requests", "value": "{{prs}}" } },
+      "loc"
+    ]
+  }
+}
