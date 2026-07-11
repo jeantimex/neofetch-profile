@@ -2,6 +2,7 @@
 // Generates SVG stats card for GitHub users
 
 import { Jimp } from 'jimp';
+import sharp from 'sharp';
 
 const THEMES = {
   'github-dark': {
@@ -56,7 +57,22 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
   }
 
   try {
-    const image = await Jimp.read(avatarUrl);
+    let image;
+    const isSvg = avatarUrl.toLowerCase().endsWith('.svg');
+
+    if (isSvg) {
+      // Fetch SVG and convert to PNG using sharp
+      // Render at a size appropriate for ASCII conversion (SVG viewBox is coordinates, not pixels)
+      const response = await fetch(avatarUrl);
+      const svgBuffer = Buffer.from(await response.arrayBuffer());
+      // Render SVG at 300 DPI for good detail, then let our sizing logic handle it
+      const pngBuffer = await sharp(svgBuffer, { density: 300 })
+        .png()
+        .toBuffer();
+      image = await Jimp.read(pngBuffer);
+    } else {
+      image = await Jimp.read(avatarUrl);
+    }
 
     // Remove background by detecting corner colors and making similar pixels transparent
     if (removeBackground) {
@@ -145,44 +161,37 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
       }
     }
 
-    // Characters are ~0.55 width/height ratio (Consolas/Monaco at 16px)
-    const charAspect = 0.55;
+    // Characters are ~0.5 width/height ratio (most monospace fonts)
+    const charAspect = 0.5;
+
+    // Calculate ASCII dimensions that preserve the image's visual aspect ratio
+    // For an image to look correct in ASCII, we need to compensate for non-square characters
+    // If image is W_img x H_img pixels, and we output W_char x H_char characters:
+    // Visual aspect = (W_char * char_width) / (H_char * char_height) = (W_char / H_char) * charAspect
+    // For visual aspect to match image aspect: W_char / H_char = imgAspect / charAspect
+
     const imgAspect = image.width / image.height;
+    const charRatio = imgAspect / charAspect; // This is W_char / H_char needed
 
-    // Cover mode: fill the entire area, crop if needed
-    // Calculate dimensions for both fit-to-height and fit-to-width
-    const widthIfFitToHeight = Math.round(maxHeight * imgAspect / charAspect);
-    const heightIfFitToWidth = Math.round(maxWidth * charAspect / imgAspect);
+    let width, height;
 
-    let scaleWidth, scaleHeight;
+    // Contain mode: fit within bounds while preserving aspect ratio
+    // Try fitting to height first
+    height = maxHeight;
+    width = Math.round(height * charRatio);
 
-    // Choose the option that covers the area (the larger scale)
-    if (widthIfFitToHeight >= maxWidth) {
-      // Fit to height covers width, so scale to height
-      scaleWidth = widthIfFitToHeight;
-      scaleHeight = maxHeight;
-    } else {
-      // Fit to width covers height, so scale to width
-      scaleWidth = maxWidth;
-      scaleHeight = heightIfFitToWidth;
+    // If too wide, fit to width instead
+    if (width > maxWidth) {
+      width = maxWidth;
+      height = Math.round(width / charRatio);
     }
 
-    // Resize to cover the area
-    image.resize({ w: scaleWidth, h: scaleHeight });
+    // Ensure minimum dimensions
+    width = Math.max(1, width);
+    height = Math.max(1, height);
 
-    // Center crop to exact target dimensions
-    const cropX = Math.max(0, Math.floor((scaleWidth - maxWidth) / 2));
-    const cropY = Math.max(0, Math.floor((scaleHeight - maxHeight) / 2));
-    const finalWidth = Math.min(scaleWidth, maxWidth);
-    const finalHeight = Math.min(scaleHeight, maxHeight);
-
-    if (cropX > 0 || cropY > 0) {
-      image.crop({ x: cropX, y: cropY, w: finalWidth, h: finalHeight });
-    }
-
-    // Use actual image dimensions after operations
-    const width = image.width;
-    const height = image.height;
+    // Resize image to match ASCII dimensions (1 pixel = 1 character)
+    image.resize({ w: width, h: height });
 
     // Calculate average luminance to determine if we should invert (only for opaque pixels)
     let lumaTotal = 0;
@@ -1005,8 +1014,8 @@ export default async function handler(req, res) {
 
     // Determine which image to use for ASCII art
     const imageUrl = config.image || data.avatarUrl;
-    // Formats that support transparency: PNG, WebP, AVIF, GIF
-    const transparentFormats = ['.png', '.webp', '.avif', '.gif'];
+    // Formats that support transparency: PNG, WebP, AVIF, GIF, SVG
+    const transparentFormats = ['.png', '.webp', '.avif', '.gif', '.svg'];
     const hasTransparency = imageUrl && transparentFormats.some(ext => imageUrl.toLowerCase().endsWith(ext));
     const useColoredAscii = config.coloredImage === true;
     const imageScale = typeof config.imageScale === 'number' ? config.imageScale : 1;
