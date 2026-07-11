@@ -737,7 +737,23 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
     // Section title (if provided and not null)
     if (section.title) {
       const sectionSeparator = fitSectionSeparator(section.title);
-      detailLines.push(`<tspan x="390" y="${y}">${escapeXml(section.title)}</tspan><tspan>${escapeXml(sectionSeparator)}</tspan>`);
+
+      // Get custom title colors if specified (based on theme)
+      const titleTextColor = section.titleColor?.text
+        ? (isLightTheme ? section.titleColor.text.light : section.titleColor.text.dark)
+        : null;
+      const titleLineColor = section.titleColor?.line
+        ? (isLightTheme ? section.titleColor.line.light : section.titleColor.line.dark)
+        : null;
+
+      const titleSpan = titleTextColor
+        ? `<tspan x="390" y="${y}" fill="${titleTextColor}">${escapeXml(section.title)}</tspan>`
+        : `<tspan x="390" y="${y}">${escapeXml(section.title)}</tspan>`;
+      const lineSpan = titleLineColor
+        ? `<tspan fill="${titleLineColor}">${escapeXml(sectionSeparator)}</tspan>`
+        : `<tspan>${escapeXml(sectionSeparator)}</tspan>`;
+
+      detailLines.push(`${titleSpan}${lineSpan}`);
       y += lineHeight;
     }
 
@@ -982,6 +998,10 @@ function processConfig(config, data) {
   for (const section of config.sections) {
     const processedSection = {
       title: section.title ? replaceTemplateVars(section.title, data) : null,
+      titleColor: section.titleColor ? {
+        text: parseColors(section.titleColor.text),
+        line: parseColors(section.titleColor.line)
+      } : null,
       fields: section.fields.map(field => ({
         key: replaceTemplateVars(field.key, data),
         value: replaceTemplateVars(field.value, data),
