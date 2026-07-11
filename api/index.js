@@ -164,34 +164,54 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
     // Characters are ~0.5 width/height ratio (most monospace fonts)
     const charAspect = 0.5;
 
-    // Calculate ASCII dimensions that preserve the image's visual aspect ratio
-    // For an image to look correct in ASCII, we need to compensate for non-square characters
-    // If image is W_img x H_img pixels, and we output W_char x H_char characters:
-    // Visual aspect = (W_char * char_width) / (H_char * char_height) = (W_char / H_char) * charAspect
-    // For visual aspect to match image aspect: W_char / H_char = imgAspect / charAspect
+    // Calculate the target area's visual aspect ratio
+    const targetAspect = (maxWidth / maxHeight) * charAspect;
 
+    // Image aspect ratio
     const imgAspect = image.width / image.height;
-    const charRatio = imgAspect / charAspect; // This is W_char / H_char needed
+    const charRatio = imgAspect / charAspect; // W_char / H_char needed to preserve aspect
 
     let width, height;
 
-    // Contain mode: fit within bounds while preserving aspect ratio
-    // Try fitting to height first
-    height = maxHeight;
-    width = Math.round(height * charRatio);
+    // Decide mode based on image aspect vs target aspect:
+    // - Tall/narrow images (imgAspect < targetAspect): use CONTAIN mode (fit inside, no crop)
+    // - Square/wide images (imgAspect >= targetAspect): use COVER mode (fill area, crop excess)
 
-    // If too wide, fit to width instead
-    if (width > maxWidth) {
+    if (imgAspect < targetAspect) {
+      // CONTAIN mode for tall images (like the marker SVG)
+      height = maxHeight;
+      width = Math.round(height * charRatio);
+
+      if (width > maxWidth) {
+        width = maxWidth;
+        height = Math.round(width / charRatio);
+      }
+    } else {
+      // COVER mode for square/wide images (like GitHub avatar)
       width = maxWidth;
       height = Math.round(width / charRatio);
+
+      if (height < maxHeight) {
+        height = maxHeight;
+        width = Math.round(height * charRatio);
+      }
     }
 
     // Ensure minimum dimensions
     width = Math.max(1, width);
     height = Math.max(1, height);
 
-    // Resize image to match ASCII dimensions (1 pixel = 1 character)
+    // Resize image
     image.resize({ w: width, h: height });
+
+    // For cover mode, center crop to target dimensions
+    if (imgAspect >= targetAspect && (width > maxWidth || height > maxHeight)) {
+      const cropX = Math.max(0, Math.floor((width - maxWidth) / 2));
+      const cropY = Math.max(0, Math.floor((height - maxHeight) / 2));
+      image.crop({ x: cropX, y: cropY, w: Math.min(width, maxWidth), h: Math.min(height, maxHeight) });
+      width = image.width;
+      height = image.height;
+    }
 
     // Calculate average luminance to determine if we should invert (only for opaque pixels)
     let lumaTotal = 0;
