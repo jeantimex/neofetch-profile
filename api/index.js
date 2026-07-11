@@ -791,7 +791,22 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
     const statsTitle = config.stats.title || '- GitHub Stats';
     const statsSeparator = fitSectionSeparator(statsTitle);
 
-    detailLines.push(`<tspan x="390" y="${y}">${escapeXml(statsTitle)}</tspan><tspan>${escapeXml(statsSeparator)}</tspan>`);
+    // Get custom stats title colors if specified (based on theme)
+    const statsTitleTextColor = config.stats.titleColor?.text
+      ? (isLightTheme ? config.stats.titleColor.text.light : config.stats.titleColor.text.dark)
+      : null;
+    const statsTitleLineColor = config.stats.titleColor?.line
+      ? (isLightTheme ? config.stats.titleColor.line.light : config.stats.titleColor.line.dark)
+      : null;
+
+    const statsTitleSpan = statsTitleTextColor
+      ? `<tspan x="390" y="${y}" fill="${statsTitleTextColor}">${escapeXml(statsTitle)}</tspan>`
+      : `<tspan x="390" y="${y}">${escapeXml(statsTitle)}</tspan>`;
+    const statsLineSpan = statsTitleLineColor
+      ? `<tspan fill="${statsTitleLineColor}">${escapeXml(statsSeparator)}</tspan>`
+      : `<tspan>${escapeXml(statsSeparator)}</tspan>`;
+
+    detailLines.push(`${statsTitleSpan}${statsLineSpan}`);
     y += lineHeight;
 
     const rows = config.stats.rows || ['repos-stars', 'commits-followers', 'loc'];
@@ -1024,6 +1039,10 @@ function processConfig(config, data) {
   processed.stats = {
     enabled: config.stats?.enabled !== false,
     title: config.stats?.title ? replaceTemplateVars(config.stats.title, data) : '- GitHub Stats',
+    titleColor: config.stats?.titleColor ? {
+      text: parseColors(config.stats.titleColor.text),
+      line: parseColors(config.stats.titleColor.line)
+    } : null,
     rows: statsRows.map(row => {
       if (row === 'loc') return row;
       if (row.left && row.right) {
