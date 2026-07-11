@@ -2,7 +2,6 @@
   "coloredImage": false,
   "removeBackground": false,
   "imageScale": 1,
-  "backgroundColor": "green, rgba(0,0,0,0)",
   "sections": [
     {
       "title": "{{username}}@github",
