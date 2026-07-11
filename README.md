@@ -3,10 +3,14 @@
   <p>Generate a retro terminal-style stats card for your GitHub profile README — just like [neofetch](https://github.com/dylanaraps/neofetch), but for GitHub!</p>
 </div>
 
-<p align="center">
-  <img src="./assets/github-profile-dark.png" alt="Dark Mode" width="49%">
-  <img src="./assets/github-profile-light.png" alt="Light Mode" width="49%">
-</p>
+<div align="center">
+  <img src="./assets/github-profile-dark.png" alt="Dark Mode">
+  <p>Dark mode</p>
+</div>
+<div align="center">
+  <img src="./assets/github-profile-light.png" alt="Light Mode">
+  <p>Light mode</p>
+</div>
 
 ## Features
 
@@ -115,22 +119,22 @@ Create `neofetch.json` in your profile repository:
     {
       "title": "{{username}}@github",
       "fields": [
-        { "key": "OS", "value": "GitHub Profile" },
+        { "key": "Name", "value": "{{name}}" },
+        { "key": "Location", "value": "{{location}}" },
+        { "key": "Created", "value": "{{created}}" },
         { "key": "Uptime", "value": "{{uptime}}" },
-        { "key": "Host", "value": "{{name}}" },
-        { "key": "Kernel", "value": "{{company}}" },
-        { "key": "IDE", "value": "Neovim, VSCode, Cursor" }
+        { "key": "Company", "value": "{{company}}" }
       ]
     },
     {
       "fields": [
-        { "key": "Languages.Programming", "value": "{{languages}}" },
-        { "key": "Languages.Human", "value": "{{location}}" }
+        { "key": "Languages", "value": "{{languages}}" },
+        { "key": "IDE", "value": "Cursor, VSCode, Neovim" }
       ]
     },
     {
       "fields": [
-        { "key": "Hobbies.Software", "value": "Open Source, AI/ML" },
+        { "key": "Hobbies.Software", "value": "WebGL, WebGPU, AI/ML" },
         { "key": "Hobbies.Hardware", "value": "Mechanical Keyboards" }
       ]
     },
@@ -138,14 +142,20 @@ Create `neofetch.json` in your profile repository:
       "title": "- Contact",
       "fields": [
         { "key": "Email", "value": "{{email}}" },
-        { "key": "Website", "value": "{{blog}}" },
+        { "key": "Website", "value": "https://github.com/{{username}}" },
         { "key": "Twitter", "value": "{{twitter}}" }
       ]
     }
   ],
   "stats": {
     "title": "- GitHub Stats",
-    "rows": ["repos-stars", "commits-followers", "loc"]
+    "rows": [
+      { "left": { "key": "Repos", "value": "{{repos}}" }, "right": { "key": "Stars", "value": "{{stars}}" } },
+      { "left": { "key": "Following", "value": "{{following}}" }, "right": { "key": "Followers", "value": "{{followers}}" } },
+      { "left": { "key": "Commits", "value": "{{commits}}" }, "right": { "key": "Forks", "value": "{{forks}}" } },
+      { "left": { "key": "Issues", "value": "{{issues}}" }, "right": { "key": "PRs", "value": "{{prs}}" } },
+      "loc"
+    ]
   }
 }
 ```
