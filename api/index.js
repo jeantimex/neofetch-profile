@@ -29,8 +29,13 @@ const THEMES = {
 // ASCII character set for image conversion (light to dark)
 const ASCII_CHARS = ' .`"^-+*o()[]{}?#%@M';
 
+// Convert RGB to hex color
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
 // Convert avatar image to ASCII art (matching browser algorithm)
-async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTransparency = false) {
+async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTransparency = false, colored = false) {
   try {
     const image = await Jimp.read(avatarUrl);
 
@@ -103,53 +108,83 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
 
     // Calculate horizontal padding to center the image
     const padLeft = Math.floor((maxWidth - width) / 2);
-    const leftPadding = ' '.repeat(padLeft);
 
     for (let y = 0; y < height; y++) {
-      let line = leftPadding;
+      const lineData = colored ? [] : '';
+      let line = colored ? lineData : '';
+
+      // Add left padding
+      if (colored) {
+        for (let i = 0; i < padLeft; i++) {
+          lineData.push({ char: ' ', color: null });
+        }
+      } else {
+        line = ' '.repeat(padLeft);
+      }
+
       for (let x = 0; x < width; x++) {
-        const color = image.getPixelColor(x, y);
-        const r = (color >> 24) & 0xFF;
-        const g = (color >> 16) & 0xFF;
-        const b = (color >> 8) & 0xFF;
-        const a = color & 0xFF;
+        const pixelColor = image.getPixelColor(x, y);
+        const r = (pixelColor >> 24) & 0xFF;
+        const g = (pixelColor >> 16) & 0xFF;
+        const b = (pixelColor >> 8) & 0xFF;
+        const a = pixelColor & 0xFF;
 
         // If transparent and we're respecting transparency, use space
         if (respectTransparency && a < 128) {
-          line += ' ';
+          if (colored) {
+            lineData.push({ char: ' ', color: null });
+          } else {
+            line += ' ';
+          }
           continue;
         }
 
         // Calculate luminance
         let luma = 0.299 * r + 0.587 * g + 0.114 * b;
 
-        // Apply contrast
-        luma = (luma - 128) * contrast + 128;
-        luma = Math.max(0, Math.min(255, luma));
+        // Apply contrast for character selection
+        let adjustedLuma = (luma - 128) * contrast + 128;
+        adjustedLuma = Math.max(0, Math.min(255, adjustedLuma));
 
         // Invert if needed (so we get dark chars on light bg or vice versa)
         if (shouldInvert) {
-          luma = 255 - luma;
+          adjustedLuma = 255 - adjustedLuma;
         }
 
         // Map to ASCII character
-        const charIndex = Math.floor(luma / 255 * (ASCII_CHARS.length - 1));
-        line += ASCII_CHARS[charIndex];
+        const charIndex = Math.floor(adjustedLuma / 255 * (ASCII_CHARS.length - 1));
+        const char = ASCII_CHARS[charIndex];
+
+        if (colored) {
+          lineData.push({ char, color: rgbToHex(r, g, b) });
+        } else {
+          line += char;
+        }
       }
-      lines.push(line);
+
+      lines.push(colored ? lineData : line);
     }
 
     // Add vertical padding to center the image
     const padTop = Math.floor((maxHeight - height) / 2);
-    const emptyLine = ' '.repeat(maxWidth);
-    const paddedLines = [];
 
-    for (let i = 0; i < padTop; i++) {
-      paddedLines.push(emptyLine);
+    if (colored) {
+      const emptyLine = Array(maxWidth).fill({ char: ' ', color: null });
+      const paddedLines = [];
+      for (let i = 0; i < padTop; i++) {
+        paddedLines.push([...emptyLine]);
+      }
+      paddedLines.push(...lines);
+      return { colored: true, lines: paddedLines };
+    } else {
+      const emptyLine = ' '.repeat(maxWidth);
+      const paddedLines = [];
+      for (let i = 0; i < padTop; i++) {
+        paddedLines.push(emptyLine);
+      }
+      paddedLines.push(...lines);
+      return paddedLines;
     }
-    paddedLines.push(...lines);
-
-    return paddedLines;
   } catch (error) {
     console.error('Failed to convert avatar:', error);
     return null;
@@ -450,10 +485,50 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
   const asciiX = 15;
   const textAnchor = '';
 
-  const asciiLines = asciiArt.map((line, i) => {
-    const y = 30 + i * 20;
-    return `<tspan x="${asciiX}" y="${y}">${escapeXml(line)}</tspan>`;
-  }).join('\n');
+  let asciiLines;
+  const isColored = asciiArt && asciiArt.colored;
+
+  if (isColored) {
+    // Colored ASCII art - each character has its own color
+    asciiLines = asciiArt.lines.map((lineData, i) => {
+      const y = 30 + i * 20;
+      let lineContent = '';
+      let currentColor = null;
+      let buffer = '';
+
+      for (const { char, color } of lineData) {
+        if (color === currentColor) {
+          buffer += escapeXml(char);
+        } else {
+          if (buffer) {
+            if (currentColor) {
+              lineContent += `<tspan fill="${currentColor}">${buffer}</tspan>`;
+            } else {
+              lineContent += buffer;
+            }
+          }
+          buffer = escapeXml(char);
+          currentColor = color;
+        }
+      }
+      // Flush remaining buffer
+      if (buffer) {
+        if (currentColor) {
+          lineContent += `<tspan fill="${currentColor}">${buffer}</tspan>`;
+        } else {
+          lineContent += buffer;
+        }
+      }
+
+      return `<tspan x="${asciiX}" y="${y}">${lineContent}</tspan>`;
+    }).join('\n');
+  } else {
+    // Monochrome ASCII art
+    asciiLines = asciiArt.map((line, i) => {
+      const y = 30 + i * 20;
+      return `<tspan x="${asciiX}" y="${y}">${escapeXml(line)}</tspan>`;
+    }).join('\n');
+  }
 
   // Build detail rows from config
   let y = 30;
@@ -721,9 +796,18 @@ function processConfig(config, data) {
     })
   };
 
-  // Process image URL if provided
+  // Process image config if provided
   if (config.image) {
-    processed.image = replaceTemplateVars(config.image, data);
+    if (typeof config.image === 'string') {
+      // Simple string URL (backwards compatible)
+      processed.image = { url: replaceTemplateVars(config.image, data), colored: false };
+    } else if (typeof config.image === 'object') {
+      // Object with url and colored options
+      processed.image = {
+        url: config.image.url ? replaceTemplateVars(config.image.url, data) : null,
+        colored: config.image.colored === true
+      };
+    }
   }
 
   return processed;
@@ -772,16 +856,17 @@ export default async function handler(req, res) {
     config = processConfig(config, data);
 
     // Determine which image to use for ASCII art
-    const imageUrl = config.image || data.avatarUrl;
+    const imageUrl = config.image?.url || data.avatarUrl;
     // Formats that support transparency: PNG, WebP, AVIF, GIF
     const transparentFormats = ['.png', '.webp', '.avif', '.gif'];
     const hasTransparency = imageUrl && transparentFormats.some(ext => imageUrl.toLowerCase().endsWith(ext));
+    const useColoredAscii = config.image?.colored === true;
 
     // Convert image to ASCII art, fall back to default if it fails
     let asciiArt = DEFAULT_ASCII;
     let isCustomAscii = false;
     if (imageUrl) {
-      const converted = await avatarToAscii(imageUrl, 25, 38, hasTransparency);
+      const converted = await avatarToAscii(imageUrl, 25, 38, hasTransparency, useColoredAscii);
       if (converted) {
         asciiArt = converted;
         isCustomAscii = true;

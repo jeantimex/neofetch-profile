@@ -1,5 +1,8 @@
 {
-  "image": "http://localhost:3001/pikachu.png",
+  "image": {
+    "url": "http://localhost:3001/pikachu.png",
+    "colored": true
+  },
   "sections": [
     {
       "title": "{{username}}@github",
