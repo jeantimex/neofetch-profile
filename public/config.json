@@ -25,7 +25,7 @@
     {
       "title": "- Contact",
       "fields": [
-        { "key": "Email", "value": "{{email}}" },
+        { "key": "Email", "value": "jean.timex@gmail.com" },
         { "key": "Website", "value": "https://github.com/jeantimex" },
         { "key": "Twitter", "value": "{{twitter}}" },
         { "key": "LeetCode", "value": "https://leetcode.com/u/jeantimex/" }
