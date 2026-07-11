@@ -326,10 +326,11 @@ http://localhost:3000/api?username=YOUR_USERNAME&config=http://localhost:3000/co
 
 ## Credits
 
-Inspired by:
+This project is inspired by [**Andrew Grant's GitHub Profile**](https://github.com/Andrew6rant) — the original neofetch-style GitHub profile that started it all. Check out his amazing work!
+
+Also inspired by:
 - [neofetch](https://github.com/dylanaraps/neofetch) — The original CLI system info tool
 - [github-readme-stats](https://github.com/anuraghazra/github-readme-stats) — GitHub stats cards
-- [Andrew Grant](https://github.com/Andrew6rant) — The original neofetch-style GitHub profile
 
 ## License
 
