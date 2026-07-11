@@ -70,19 +70,40 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
     const charAspect = 0.55;
     const imgAspect = image.width / image.height;
 
-    // Calculate dimensions to fit the image as large as possible while keeping aspect ratio
-    // Try fitting to height first
-    let height = maxHeight;
-    let width = Math.round(height * imgAspect / charAspect);
+    // Cover mode: fill the entire area, crop if needed
+    // Calculate dimensions for both fit-to-height and fit-to-width
+    const widthIfFitToHeight = Math.round(maxHeight * imgAspect / charAspect);
+    const heightIfFitToWidth = Math.round(maxWidth * charAspect / imgAspect);
 
-    // If too wide, fit to width instead
-    if (width > maxWidth) {
-      width = maxWidth;
-      height = Math.round(width * charAspect / imgAspect);
+    let scaleWidth, scaleHeight;
+
+    // Choose the option that covers the area (the larger scale)
+    if (widthIfFitToHeight >= maxWidth) {
+      // Fit to height covers width, so scale to height
+      scaleWidth = widthIfFitToHeight;
+      scaleHeight = maxHeight;
+    } else {
+      // Fit to width covers height, so scale to width
+      scaleWidth = maxWidth;
+      scaleHeight = heightIfFitToWidth;
     }
 
-    // Resize to final dimensions (no cropping, just scale to fit)
-    image.resize({ w: width, h: height });
+    // Resize to cover the area
+    image.resize({ w: scaleWidth, h: scaleHeight });
+
+    // Center crop to exact target dimensions
+    const cropX = Math.max(0, Math.floor((scaleWidth - maxWidth) / 2));
+    const cropY = Math.max(0, Math.floor((scaleHeight - maxHeight) / 2));
+    const finalWidth = Math.min(scaleWidth, maxWidth);
+    const finalHeight = Math.min(scaleHeight, maxHeight);
+
+    if (cropX > 0 || cropY > 0) {
+      image.crop({ x: cropX, y: cropY, w: finalWidth, h: finalHeight });
+    }
+
+    // Use actual image dimensions after operations
+    const width = image.width;
+    const height = image.height;
 
     // Calculate average luminance to determine if we should invert (only for opaque pixels)
     let lumaTotal = 0;
@@ -106,20 +127,22 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
     const lines = [];
     const contrast = 1.2;
 
-    // Calculate horizontal padding to center the image
-    const padLeft = Math.floor((maxWidth - width) / 2);
+    // Calculate horizontal padding to center the image (only for transparent images)
+    const padLeft = respectTransparency ? Math.floor((maxWidth - width) / 2) : 0;
 
     for (let y = 0; y < height; y++) {
       const lineData = colored ? [] : '';
       let line = colored ? lineData : '';
 
-      // Add left padding
-      if (colored) {
-        for (let i = 0; i < padLeft; i++) {
-          lineData.push({ char: ' ', color: null });
+      // Add left padding (only for transparent images)
+      if (padLeft > 0) {
+        if (colored) {
+          for (let i = 0; i < padLeft; i++) {
+            lineData.push({ char: ' ', color: null });
+          }
+        } else {
+          line = ' '.repeat(padLeft);
         }
-      } else {
-        line = ' '.repeat(padLeft);
       }
 
       for (let x = 0; x < width; x++) {
@@ -165,26 +188,31 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
       lines.push(colored ? lineData : line);
     }
 
-    // Add vertical padding to center the image
-    const padTop = Math.floor((maxHeight - height) / 2);
+    // Add vertical padding to center the image (only for transparent images)
+    const padTop = respectTransparency ? Math.floor((maxHeight - height) / 2) : 0;
 
-    if (colored) {
-      const emptyLine = Array(maxWidth).fill({ char: ' ', color: null });
-      const paddedLines = [];
-      for (let i = 0; i < padTop; i++) {
-        paddedLines.push([...emptyLine]);
+    if (padTop > 0) {
+      if (colored) {
+        const emptyLine = Array(maxWidth).fill({ char: ' ', color: null });
+        const paddedLines = [];
+        for (let i = 0; i < padTop; i++) {
+          paddedLines.push([...emptyLine]);
+        }
+        paddedLines.push(...lines);
+        return { colored: true, lines: paddedLines };
+      } else {
+        const emptyLine = ' '.repeat(maxWidth);
+        const paddedLines = [];
+        for (let i = 0; i < padTop; i++) {
+          paddedLines.push(emptyLine);
+        }
+        paddedLines.push(...lines);
+        return paddedLines;
       }
-      paddedLines.push(...lines);
-      return { colored: true, lines: paddedLines };
-    } else {
-      const emptyLine = ' '.repeat(maxWidth);
-      const paddedLines = [];
-      for (let i = 0; i < padTop; i++) {
-        paddedLines.push(emptyLine);
-      }
-      paddedLines.push(...lines);
-      return paddedLines;
     }
+
+    // No padding needed
+    return colored ? { colored: true, lines } : lines;
   } catch (error) {
     console.error('Failed to convert avatar:', error);
     return null;
@@ -796,19 +824,13 @@ function processConfig(config, data) {
     })
   };
 
-  // Process image config if provided
+  // Process image URL if provided
   if (config.image) {
-    if (typeof config.image === 'string') {
-      // Simple string URL (backwards compatible)
-      processed.image = { url: replaceTemplateVars(config.image, data), colored: false };
-    } else if (typeof config.image === 'object') {
-      // Object with url and colored options
-      processed.image = {
-        url: config.image.url ? replaceTemplateVars(config.image.url, data) : null,
-        colored: config.image.colored === true
-      };
-    }
+    processed.image = replaceTemplateVars(config.image, data);
   }
+
+  // Process coloredImage option (works for custom image or default GitHub avatar)
+  processed.coloredImage = config.coloredImage === true;
 
   return processed;
 }
@@ -856,11 +878,11 @@ export default async function handler(req, res) {
     config = processConfig(config, data);
 
     // Determine which image to use for ASCII art
-    const imageUrl = config.image?.url || data.avatarUrl;
+    const imageUrl = config.image || data.avatarUrl;
     // Formats that support transparency: PNG, WebP, AVIF, GIF
     const transparentFormats = ['.png', '.webp', '.avif', '.gif'];
     const hasTransparency = imageUrl && transparentFormats.some(ext => imageUrl.toLowerCase().endsWith(ext));
-    const useColoredAscii = config.image?.colored === true;
+    const useColoredAscii = config.coloredImage === true;
 
     // Convert image to ASCII art, fall back to default if it fails
     let asciiArt = DEFAULT_ASCII;
