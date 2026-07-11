@@ -1,14 +1,11 @@
-# Neofetch Profile
-
-Generate a retro terminal-style stats card for your GitHub profile README — just like [neofetch](https://github.com/dylanaraps/neofetch), but for GitHub!
+<div align="center">
+  <h1 style="font-size: 28px; margin: 10px 0;">GitHub Neofetch Profile</h1>
+  <p>Generate a retro terminal-style stats card for your GitHub profile README — just like [neofetch](https://github.com/dylanaraps/neofetch), but for GitHub!</p>
+</div>
 
 <p align="center">
-  <a href="https://github.com/jeantimex/neofetch-profile">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://neofetch-profile.vercel.app/api?username=jeantimex&theme=github-dark">
-      <img alt="Neofetch Profile" src="https://neofetch-profile.vercel.app/api?username=jeantimex&theme=github-light" width="800">
-    </picture>
-  </a>
+  <img src="./assets/github-profile-dark.png" alt="Dark Mode" width="49%">
+  <img src="./assets/github-profile-light.png" alt="Light Mode" width="49%">
 </p>
 
 ## Features
