@@ -35,9 +35,88 @@ function rgbToHex(r, g, b) {
 }
 
 // Convert avatar image to ASCII art (matching browser algorithm)
-async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTransparency = false, colored = false) {
+async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTransparency = false, colored = false, imageScale = 1, removeBackground = false) {
+  // Store original dimensions for final padding
+  const originalMaxWidth = maxWidth;
+  const originalMaxHeight = maxHeight;
+
+  // Handle imageScale = 0 (don't render)
+  if (imageScale <= 0) {
+    if (colored) {
+      const emptyLine = Array(originalMaxWidth).fill({ char: ' ', color: null });
+      return { colored: true, lines: Array(originalMaxHeight).fill(null).map(() => [...emptyLine]) };
+    }
+    return Array(originalMaxHeight).fill(' '.repeat(originalMaxWidth));
+  }
+
+  // For scale < 1: reduce target dimensions (zoom out)
+  if (imageScale < 1) {
+    maxWidth = Math.round(maxWidth * imageScale);
+    maxHeight = Math.round(maxHeight * imageScale);
+  }
+
   try {
     const image = await Jimp.read(avatarUrl);
+
+    // Remove background by detecting corner colors and making similar pixels transparent
+    if (removeBackground) {
+      const w = image.width;
+      const h = image.height;
+      const tolerance = 30; // Color difference tolerance
+
+      // Sample corners to detect background color (take average of corners)
+      const corners = [
+        image.getPixelColor(0, 0),
+        image.getPixelColor(w - 1, 0),
+        image.getPixelColor(0, h - 1),
+        image.getPixelColor(w - 1, h - 1)
+      ];
+
+      // Extract RGB from corners and find the most common background color
+      const cornerColors = corners.map(c => ({
+        r: (c >> 24) & 0xFF,
+        g: (c >> 16) & 0xFF,
+        b: (c >> 8) & 0xFF
+      }));
+
+      // Use the average of corner colors as the background
+      const bgColor = {
+        r: Math.round(cornerColors.reduce((sum, c) => sum + c.r, 0) / 4),
+        g: Math.round(cornerColors.reduce((sum, c) => sum + c.g, 0) / 4),
+        b: Math.round(cornerColors.reduce((sum, c) => sum + c.b, 0) / 4)
+      };
+
+      // Make pixels similar to background transparent
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const pixel = image.getPixelColor(x, y);
+          const r = (pixel >> 24) & 0xFF;
+          const g = (pixel >> 16) & 0xFF;
+          const b = (pixel >> 8) & 0xFF;
+
+          // Calculate color distance
+          const diff = Math.sqrt(
+            Math.pow(r - bgColor.r, 2) +
+            Math.pow(g - bgColor.g, 2) +
+            Math.pow(b - bgColor.b, 2)
+          );
+
+          if (diff <= tolerance) {
+            // Make pixel transparent (set alpha to 0)
+            image.setPixelColor(0x00000000, x, y);
+          }
+        }
+      }
+    }
+
+    // For scale > 1: crop to center portion of image (zoom in)
+    if (imageScale > 1) {
+      const cropW = Math.round(image.width / imageScale);
+      const cropH = Math.round(image.height / imageScale);
+      const cropX = Math.round((image.width - cropW) / 2);
+      const cropY = Math.round((image.height - cropH) / 2);
+      image.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
+    }
 
     // For PNGs with transparency, crop to bounding box of non-transparent pixels first
     if (respectTransparency) {
@@ -199,7 +278,7 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
           paddedLines.push([...emptyLine]);
         }
         paddedLines.push(...lines);
-        return { colored: true, lines: paddedLines };
+        lines = paddedLines;
       } else {
         const emptyLine = ' '.repeat(maxWidth);
         const paddedLines = [];
@@ -207,11 +286,52 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
           paddedLines.push(emptyLine);
         }
         paddedLines.push(...lines);
-        return paddedLines;
+        lines = paddedLines;
       }
     }
 
-    // No padding needed
+    // Add padding for scaled images to center in original dimensions
+    if (imageScale < 1) {
+      const scalePadLeft = Math.floor((originalMaxWidth - maxWidth) / 2);
+      const scalePadTop = Math.floor((originalMaxHeight - lines.length) / 2);
+
+      if (colored) {
+        // Add horizontal padding to each line
+        const paddedLines = lines.map(line => {
+          const leftPad = Array(scalePadLeft).fill({ char: ' ', color: null });
+          const rightPad = Array(originalMaxWidth - maxWidth - scalePadLeft).fill({ char: ' ', color: null });
+          return [...leftPad, ...line, ...rightPad];
+        });
+        // Add vertical padding
+        const emptyLine = Array(originalMaxWidth).fill({ char: ' ', color: null });
+        const finalLines = [];
+        for (let i = 0; i < scalePadTop; i++) {
+          finalLines.push([...emptyLine]);
+        }
+        finalLines.push(...paddedLines);
+        while (finalLines.length < originalMaxHeight) {
+          finalLines.push([...emptyLine]);
+        }
+        return { colored: true, lines: finalLines };
+      } else {
+        // Add horizontal padding to each line
+        const leftPadStr = ' '.repeat(scalePadLeft);
+        const rightPadStr = ' '.repeat(originalMaxWidth - maxWidth - scalePadLeft);
+        const paddedLines = lines.map(line => leftPadStr + line + rightPadStr);
+        // Add vertical padding
+        const emptyLine = ' '.repeat(originalMaxWidth);
+        const finalLines = [];
+        for (let i = 0; i < scalePadTop; i++) {
+          finalLines.push(emptyLine);
+        }
+        finalLines.push(...paddedLines);
+        while (finalLines.length < originalMaxHeight) {
+          finalLines.push(emptyLine);
+        }
+        return finalLines;
+      }
+    }
+
     return colored ? { colored: true, lines } : lines;
   } catch (error) {
     console.error('Failed to convert avatar:', error);
@@ -832,6 +952,12 @@ function processConfig(config, data) {
   // Process coloredImage option (works for custom image or default GitHub avatar)
   processed.coloredImage = config.coloredImage === true;
 
+  // Process imageScale option (0 = no image, 0.5 = half size, 1 = full size)
+  processed.imageScale = typeof config.imageScale === 'number' ? config.imageScale : 1;
+
+  // Process removeBackground option (auto-detect and remove background color)
+  processed.removeBackground = config.removeBackground === true;
+
   return processed;
 }
 
@@ -883,12 +1009,16 @@ export default async function handler(req, res) {
     const transparentFormats = ['.png', '.webp', '.avif', '.gif'];
     const hasTransparency = imageUrl && transparentFormats.some(ext => imageUrl.toLowerCase().endsWith(ext));
     const useColoredAscii = config.coloredImage === true;
+    const imageScale = typeof config.imageScale === 'number' ? config.imageScale : 1;
+    const removeBackground = config.removeBackground === true;
+    // If removing background, treat as transparent for bounding box/centering
+    const respectTransparency = hasTransparency || removeBackground;
 
     // Convert image to ASCII art, fall back to default if it fails
     let asciiArt = DEFAULT_ASCII;
     let isCustomAscii = false;
     if (imageUrl) {
-      const converted = await avatarToAscii(imageUrl, 25, 38, hasTransparency, useColoredAscii);
+      const converted = await avatarToAscii(imageUrl, 25, 38, respectTransparency, useColoredAscii, imageScale, removeBackground);
       if (converted) {
         asciiArt = converted;
         isCustomAscii = true;
