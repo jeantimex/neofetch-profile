@@ -744,7 +744,24 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
     // Section fields
     for (const field of section.fields) {
       const row = fitDetailRow(field.key, field.value);
-      detailLines.push(`<tspan x="390" y="${y}" class="cc">. </tspan><tspan class="key">${escapeXml(row.key)}</tspan>:<tspan class="cc">${escapeXml(row.dots)}</tspan><tspan class="value">${escapeXml(row.value)}</tspan>`);
+
+      // Get custom colors if specified (based on theme)
+      const keyColor = field.keyColor
+        ? (isLightTheme ? field.keyColor.light : field.keyColor.dark)
+        : null;
+      const valueColor = field.valueColor
+        ? (isLightTheme ? field.valueColor.light : field.valueColor.dark)
+        : null;
+
+      // Use inline fill if custom color, otherwise use CSS class
+      const keySpan = keyColor
+        ? `<tspan fill="${keyColor}">${escapeXml(row.key)}</tspan>`
+        : `<tspan class="key">${escapeXml(row.key)}</tspan>`;
+      const valueSpan = valueColor
+        ? `<tspan fill="${valueColor}">${escapeXml(row.value)}</tspan>`
+        : `<tspan class="value">${escapeXml(row.value)}</tspan>`;
+
+      detailLines.push(`<tspan x="390" y="${y}" class="cc">. </tspan>${keySpan}:<tspan class="cc">${escapeXml(row.dots)}</tspan>${valueSpan}`);
       y += lineHeight;
     }
 
@@ -952,12 +969,24 @@ function replaceTemplateVars(str, data) {
 function processConfig(config, data) {
   const processed = { sections: [] };
 
+  // Helper to parse comma-separated colors
+  const parseColors = (colorStr) => {
+    if (!colorStr || typeof colorStr !== 'string') return null;
+    const colors = colorStr.split(',').map(c => c.trim());
+    return {
+      light: colors[0] || null,
+      dark: colors[1] || colors[0] || null
+    };
+  };
+
   for (const section of config.sections) {
     const processedSection = {
       title: section.title ? replaceTemplateVars(section.title, data) : null,
       fields: section.fields.map(field => ({
         key: replaceTemplateVars(field.key, data),
-        value: replaceTemplateVars(field.value, data)
+        value: replaceTemplateVars(field.value, data),
+        keyColor: parseColors(field.keyColor),
+        valueColor: parseColors(field.valueColor)
       }))
     };
     processed.sections.push(processedSection);
