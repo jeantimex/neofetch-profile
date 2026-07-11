@@ -662,10 +662,30 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
   const asciiX = 15;
   const textAnchor = '';
 
+  // Check if imageColor override is set
+  const isLightTheme = theme === 'github-light';
+  const imageColorOverride = config.imageColor
+    ? (isLightTheme ? config.imageColor.light : config.imageColor.dark)
+    : null;
+
   let asciiLines;
   const isColored = asciiArt && asciiArt.colored;
 
-  if (isColored) {
+  if (imageColorOverride) {
+    // Use single color override for all characters
+    if (isColored) {
+      asciiLines = asciiArt.lines.map((lineData, i) => {
+        const y = 30 + i * 20;
+        const lineText = lineData.map(({ char }) => escapeXml(char)).join('');
+        return `<tspan x="${asciiX}" y="${y}">${lineText}</tspan>`;
+      }).join('\n');
+    } else {
+      asciiLines = asciiArt.map((line, i) => {
+        const y = 30 + i * 20;
+        return `<tspan x="${asciiX}" y="${y}">${escapeXml(line)}</tspan>`;
+      }).join('\n');
+    }
+  } else if (isColored) {
     // Colored ASCII art - each character has its own color
     asciiLines = asciiArt.lines.map((lineData, i) => {
       const y = 30 + i * 20;
@@ -774,7 +794,7 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
 text, tspan { white-space: pre; }
 </style>
 <rect width="985px" height="530px" fill="${colors.bg}" rx="15"/>
-<text x="${asciiX}" y="30" fill="${colors.ascii}"${textAnchor}>
+<text x="${asciiX}" y="30" fill="${imageColorOverride || colors.ascii}"${textAnchor}>
 ${asciiLines}
 </text>
 <text x="390" y="30" fill="${colors.text}">
@@ -986,6 +1006,15 @@ function processConfig(config, data) {
 
   // Process removeBackground option (auto-detect and remove background color)
   processed.removeBackground = config.removeBackground === true;
+
+  // Process imageColor option (comma-separated: "lightColor, darkColor")
+  if (config.imageColor && typeof config.imageColor === 'string') {
+    const colors = config.imageColor.split(',').map(c => c.trim());
+    processed.imageColor = {
+      light: colors[0] || null,
+      dark: colors[1] || colors[0] || null  // Fall back to first color if only one provided
+    };
+  }
 
   return processed;
 }
