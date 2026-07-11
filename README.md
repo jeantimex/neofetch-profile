@@ -117,7 +117,7 @@ https://neofetch-profile.vercel.app/api?username=jeantimex
 https://neofetch-profile.vercel.app/api?username=jeantimex&theme=github-light
 
 # With custom config (URL-encoded for GitHub README)
-https://neofetch-profile.vercel.app/api?username=jeantimex&config=https%3A%2F%2Fraw.githubusercontent.com%2Fjeantimex%2Fjeantimex%2Fmain%2Fneofetch.json
+https://neofetch-profile.vercel.app/api?username=jeantimex&theme=github-dark&config=https%3A%2F%2Fraw.githubusercontent.com%2Fjeantimex%2Fneofetch-profile%2Fmain%2Fpublic%2Fconfig.json
 ```
 
 > **Tip:** Use [urlencoder.org](https://www.urlencoder.org/) to encode your config URL.
@@ -190,7 +190,7 @@ https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_USERNAME/main/neofetch.json
 **Important:** URL-encode the config URL for GitHub README compatibility.
 
 ```markdown
-![Neofetch Stats](https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&config=https%3A%2F%2Fraw.githubusercontent.com%2FYOUR_USERNAME%2FYOUR_USERNAME%2Fmain%2Fneofetch.json)
+![Neofetch Stats](https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&config=https%3A%2F%2Fraw.githubusercontent.com%2FYOUR_USERNAME%2FYOUR_GITHUB_PROJECT%2Fmain%2Fconfig.json)
 ```
 
 ### Template Variables
