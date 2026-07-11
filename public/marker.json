@@ -1,0 +1,52 @@
+{
+  "image": "https://raw.githubusercontent.com/jeantimex/neofetch-profile/main/public/marker.svg",
+  "coloredImage": true,
+  "removeBackground": false,
+  "imageScale": 0.8,
+  "sections": [
+    {
+      "title": "{{username}}@github",
+      "titleColor": { "text": "#1A73E8, #4285F4", "line": "#5F6368, #9AA0A6" },
+      "fields": [
+        { "key": "Name", "value": "{{name}}", "keyColor": "#1A73E8, #4285F4", "valueColor": "#202124, #E8EAED" },
+        { "key": "Location", "value": "{{location}}", "keyColor": "#EA4335, #EA4335", "valueColor": "#202124, #E8EAED" },
+        { "key": "Created", "value": "{{created}}", "keyColor": "#FBBC04, #FBBC04", "valueColor": "#202124, #E8EAED" },
+        { "key": "Uptime", "value": "{{uptime}}", "keyColor": "#34A853, #34A853", "valueColor": "#202124, #E8EAED" },
+        { "key": "Company", "value": "{{company}}", "keyColor": "#1A73E8, #4285F4", "valueColor": "#202124, #E8EAED" }
+      ]
+    },
+    {
+      "fields": [
+        { "key": "Languages", "value": "{{languages}}", "keyColor": "#EA4335, #EA4335", "valueColor": "#202124, #E8EAED" },
+        { "key": "IDE", "value": "Cursor, VSCode, Neovim", "keyColor": "#FBBC04, #FBBC04", "valueColor": "#202124, #E8EAED" }
+      ]
+    },
+    {
+      "fields": [
+        { "key": "Hobbies.Software", "value": "WebGL, WebGPU, AI/ML", "keyColor": "#34A853, #34A853", "valueColor": "#202124, #E8EAED" },
+        { "key": "Hobbies.Hardware", "value": "Mechanical Keyboards", "keyColor": "#1A73E8, #4285F4", "valueColor": "#202124, #E8EAED" }
+      ]
+    },
+    {
+      "title": "- Contact",
+      "titleColor": { "text": "#EA4335, #EA4335", "line": "#5F6368, #9AA0A6" },
+      "fields": [
+        { "key": "Email", "value": "jean.timex@gmail.com", "keyColor": "#EA4335, #EA4335", "valueColor": "#202124, #E8EAED" },
+        { "key": "Website", "value": "https://github.com/jeantimex", "keyColor": "#FBBC04, #FBBC04", "valueColor": "#202124, #E8EAED" },
+        { "key": "Twitter", "value": "{{twitter}}", "keyColor": "#34A853, #34A853", "valueColor": "#202124, #E8EAED" },
+        { "key": "LeetCode", "value": "https://leetcode.com/u/jeantimex/", "keyColor": "#1A73E8, #4285F4", "valueColor": "#202124, #E8EAED" }
+      ]
+    }
+  ],
+  "stats": {
+    "title": "- GitHub Stats",
+    "titleColor": { "text": "#34A853, #34A853", "line": "#5F6368, #9AA0A6" },
+    "rows": [
+      { "left": { "key": "Repos", "value": "{{repos}}" }, "right": { "key": "Stars", "value": "{{stars}}" } },
+      { "left": { "key": "Following", "value": "{{following}}" }, "right": { "key": "Followers", "value": "{{followers}}" } },
+      { "left": { "key": "Commits", "value": "{{commits}}" }, "right": { "key": "Forks", "value": "{{forks}}" } },
+      { "left": { "key": "Issues", "value": "{{issues}}" }, "right": { "key": "Pull Requests", "value": "{{prs}}" } },
+      "loc"
+    ]
+  }
+}
