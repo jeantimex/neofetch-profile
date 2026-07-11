@@ -8,6 +8,9 @@
       "maxDuration": 10
     }
   },
+  "redirects": [
+    { "source": "/", "destination": "https://github.com/jeantimex/neofetch-profile", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" }
   ]

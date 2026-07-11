@@ -676,41 +676,13 @@ function processConfig(config, data) {
   return processed;
 }
 
-// Default config when no custom config is provided
+// Default config when no custom config is provided - minimal, just title + stats
 function getDefaultConfig(data) {
   return {
     sections: [
       {
         title: `${data.username}@github`,
-        fields: [
-          { key: 'OS', value: 'GitHub Profile' },
-          { key: 'Uptime', value: data.uptime },
-          { key: 'Host', value: data.name },
-          { key: 'Kernel', value: data.company || data.bio || 'Developer' },
-          { key: 'IDE', value: `github.com/${data.username}` },
-        ]
-      },
-      {
-        fields: [
-          { key: 'Languages.Programming', value: data.topLanguages },
-          { key: 'Languages.Computer', value: 'Markdown, JSON, YAML' },
-          { key: 'Languages.Real', value: data.location || 'Earth' },
-        ]
-      },
-      {
-        fields: [
-          { key: 'Hobbies.Software', value: 'Open Source' },
-          { key: 'Hobbies.Hardware', value: 'Coding' },
-        ]
-      },
-      {
-        title: '- Contact',
-        fields: [
-          { key: 'Email.Personal', value: data.email || 'Not public' },
-          { key: 'Email.Work', value: data.email || 'Not public' },
-          { key: 'LinkedIn', value: data.username },
-          { key: 'Discord', value: data.username },
-        ]
+        fields: []
       }
     ]
   };
