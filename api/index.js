@@ -130,7 +130,8 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
 
     // STEP 1.5: For images with transparency, crop to bounding box of opaque pixels
     // This removes transparent padding so the actual content fills the grid
-    if (respectTransparency) {
+    // Skip this if removeBackground is enabled - user wants to keep original size
+    if (respectTransparency && !removeBackground) {
       let minX = image.width, minY = image.height, maxX = 0, maxY = 0;
       let hasOpaquePixels = false;
 

@@ -1,6 +1,6 @@
 {  
   "coloredImage": true,
-  "removeBackground": true,
+  "removeBackground": false,
   "imageScale": 1,
   "imageOffsetX": 0,
   "imageOffsetY": 0,
